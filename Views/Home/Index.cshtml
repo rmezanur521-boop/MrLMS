@@ -1,0 +1,179 @@
+﻿@model MrLMS.Models.ViewModels.HomeViewModel
+@{
+    ViewData["Title"] = "Home";
+    // Layout = "~/Views/Shared/_LibraryLayout.cshtml";
+
+    // Pass stats to layout via ViewBag
+    ViewBag.TotalBooks = Model.TotalBooks;
+    ViewBag.TotalMembers = Model.TotalMembers;
+    ViewBag.ActiveReservations = Model.ActiveReservations;
+    ViewBag.TotalGenres = Model.TotalGenres;
+}
+
+@* ── Shared book-card partial (inline helper) ── *@
+@functions {
+    string StarRating(double avg)
+    {
+        int full = (int)Math.Floor(avg);
+        bool half = (avg - full) >= 0.5;
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < full; i++)
+            sb.Append("<i class='bi bi-star-fill text-warning' style='font-size:.75rem'></i>");
+        if (half)
+            sb.Append("<i class='bi bi-star-half text-warning' style='font-size:.75rem'></i>");
+        return sb.ToString();
+    }
+}
+<div class="row">
+
+    <!-- ══════════════════════════════════════════
+         MAIN COLUMN
+    ══════════════════════════════════════════ -->
+    <div class="col-lg-9">
+
+        <!-- ── Partial: renders a 2-per-row book grid ──────────────── -->
+        @{
+            void RenderSection(string title, List<MrLMS.Models.ViewModels.BookCardViewModel> books,
+            string metricLabel, string metricIcon, string badgeClass)
+            {
+                if (!books.Any()) return;
+                <div class="mb-4">
+                    <div class="section-title">
+                    @title</div>
+                    <div class="row g-0">
+                        @foreach (var book in books)
+                        {
+                            <div class="col-md-6">
+                                <div class="book-card me-2 mb-2">
+
+                                    @* Image *@
+                                    @if (!string.IsNullOrEmpty(book.ImageUrl))
+                                    {
+                                        <img src="@Url.Content("~/images/" + book.ImageUrl)" alt="@book.Title" />
+                                    }
+                                    else
+                                    {
+                                        <div class="book-no-img">
+                                            <i class="bi bi-book"></i>
+                                        </div>
+                                    }
+
+                                    @* Info *@
+                                    <div class="book-info">
+                                        <div class="book-title">
+                                            <a href="/Book/Details/@book.BookId">@book.Title</a>
+                                        </div>
+                                        <div class="book-meta"><span>Authors:</span> @book.Authors</div>
+                                        <div class="book-meta"><span>Genre:</span> @(book.GenreName ?? "—")</div>
+                                        <div class="book-meta"><span>Publication:</span> @(book.Publication ?? "—")</div>
+
+                                        @* Metric badge *@
+                                        <div>
+                                            @if (metricLabel == "Rating")
+                                            {
+                                                <span class="badge bg-warning text-dark badge-metric">
+                                                    <i class="bi bi-star-fill me-1"></i>@book.AvgRating.ToString("0.0")
+                                                </span>
+                                            }
+                                            else if (metricLabel == "Reservations")
+                                            {
+                                                <span class="badge bg-primary badge-metric">
+                                                    <i class="bi bi-bookmark-fill me-1"></i>@book.ReservationCount reserved
+                                                </span>
+                                            }
+                                            else if (metricLabel == "Recommended")
+                                            {
+                                                <span class="badge bg-success badge-metric">
+                                                    <i class="bi bi-hand-thumbs-up-fill me-1"></i>@book.RecommendationCount recommended
+                                                </span>
+                                            }
+                                        </div>
+
+                                        <a href="/Book/Details/@book.BookId" class="btn btn-details">View Details</a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+
+        @{
+            RenderSection("Top 6 New Arrivals", Model.NewArrivals, "None", "", "");
+        }
+        @{
+            RenderSection("Top 6 Books by Rating", Model.TopRatedBooks, "Rating", "star-fill", "warning");
+        }
+        @{
+            RenderSection("Top 6 Most Reserved Books", Model.TopReservedBooks, "Reservations", "bookmark-fill", "primary");
+        }
+        @{
+            RenderSection("Top 6 Most Recommended Books", Model.TopRecommendedBooks, "Recommended", "hand-thumbs-up-fill", "success");
+        }
+
+    </div><!-- /col-lg-9 -->
+    <!-- ══════════════════════════════════════════
+         RIGHT SIDEBAR
+    ══════════════════════════════════════════ -->
+    <div class="col-lg-3">
+
+        <!-- ── Genre-wise Book Count ───────────────────────────────── -->
+        <div class="sidebar-panel">
+            <div class="panel-header">
+                <i class="bi bi-bookmarks-fill"></i> Genre-wise Book Count
+            </div>
+            <div class="panel-body">
+                @foreach (var g in Model.GenreBookCounts)
+                {
+                    <div class="genre-row">
+                        <span>@g.GenreName</span>
+                        <a asp-controller="Book"
+                           asp-action="AdvancedSearch"
+                           asp-route-genreId="@g.GenreId"
+                           class="genre-badge text-decoration-none">
+                            @g.BookCount
+                        </a>
+                    </div>
+                }
+                @if (!Model.GenreBookCounts.Any())
+                {
+                    <div class="genre-row text-muted">No data available.</div>
+                }
+            </div>
+        </div>
+
+        <!-- ── Books Returning in Next 10 Days ─────────────────────── -->
+        <div class="sidebar-panel">
+            <div class="panel-header">
+                <i class="bi bi-calendar-check"></i> Books Returning in Next 10 Days
+            </div>
+            <div class="panel-body">
+                @if (Model.DueSoonBooks.Any())
+                {
+                    @foreach (var b in Model.DueSoonBooks)
+                    {
+                        <div class="due-row">
+                            <div class="fw-semibold" style="font-size:.85rem">@b.Title</div>
+                            <div class="text-muted" style="font-size:.78rem">
+                                <i class="bi bi-person me-1"></i>@(b.MemberName ?? "—")
+                            </div>
+                            <div class="mt-1">
+                                <span class="due-badge">
+                                    <i class="bi bi-clock me-1"></i>
+                                    Due: @b.DueDate?.ToString("dd MMM yyyy")
+                                </span>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="due-row text-muted">No books due in next 10 days.</div>
+                }
+            </div>
+        </div>
+
+    </div><!-- /col-lg-3 -->
+
+</div><!-- /row -->

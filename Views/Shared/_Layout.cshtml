@@ -1,0 +1,62 @@
+﻿@{
+    var userName = Context.Session.GetString("UserName");
+    var userRole = Context.Session.GetString("UserRole");
+}
+
+@if (!string.IsNullOrEmpty(userName))
+{
+    <span>Welcome, @userName (@userRole)</span>
+    <a asp-action="Logout" asp-controller="Account">Logout</a>
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MrLMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.8/dist/cerulean/bootstrap.min.css" rel="stylesheet">
+    @* <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /> *@
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/MrLMS.styles.css" asp-append-version="true" />
+ 
+ 
+</head>
+<body>
+    <header>
+        @Html.Partial("_Navbar.cshtml")
+        <!-- ── Search Bar ── -->
+        <div class="search-bar-wrap">
+            <div class="container-fluid">
+                <form method="get" asp-for="SearchText" asp-controller="Book" asp-action="AdvancedSearch">
+                    <div class="input-group">
+                        <input type="text" name="q" class="form-control"
+                               placeholder="Book Title / Author Name / ISBN / Publication" />
+                        <button class="btn btn-search" type="submit">
+                            <i class="bi bi-search me-1"></i> Search
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        
+    </header>
+    <div class="container">
+       
+        <main role="main" class="pb-3 mb-md-4">
+            
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2026 - MrLMS - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

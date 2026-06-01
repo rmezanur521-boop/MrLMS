@@ -1,0 +1,181 @@
+﻿@model MrLMS.Models.ViewModels.AdvancedSearchViewModel
+@{
+    ViewData["Title"] = "Advanced Search";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid px-3 py-3">
+
+    <!-- ── Page Title ── -->
+    <h4 class="mb-3" style="font-weight:700; color:#1a1a2e;">
+        <i class="bi bi-search me-2 text-danger"></i>Advanced Book Search
+    </h4>
+
+    <!-- ── Validation Message ── -->
+    @if (!string.IsNullOrEmpty(Model.ValidationMessage))
+    {
+        <div class="validation-msg">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ValidationMessage
+        </div>
+    }
+
+    <!-- ══════════════════════════════════════════
+         FILTER FORM
+    ══════════════════════════════════════════ -->
+    <div class="filter-panel">
+        <form asp-action="AdvancedSearch" asp-controller="Book" method="post" id="searchForm">
+            @Html.AntiForgeryToken()
+
+            <div class="row g-3">
+
+                <!-- Search Text -->
+                <div class="col-md-4">
+                    <div class="filter-label">Search Text</div>
+                    <input asp-for="SearchText"
+                           class="form-control"
+                           placeholder="Title or ISBN" />
+                </div>
+
+                <!-- Author Dropdown -->
+                <div class="col-md-4">
+                    <div class="filter-label">Author</div>
+                    <select asp-for="AuthorId"
+                            asp-items="Model.AuthorList"
+                            class="form-select">
+                    </select>
+                </div>
+
+                <!-- Genre Dropdown -->
+                <div class="col-md-4">
+                    <div class="filter-label">Genre</div>
+                    <select asp-for="GenreId"
+                            asp-items="Model.GenreList"
+                            class="form-select">
+                    </select>
+                </div>
+
+                <!-- Publication Dropdown -->
+                <div class="col-md-4">
+                    <div class="filter-label">Publication</div>
+                    <select asp-for="Publication"
+                            asp-items="Model.PublicationList"
+                            class="form-select">
+                    </select>
+                </div>
+
+                <!-- Max Page Count -->
+                <div class="col-md-4">
+                    <div class="filter-label">Max Page Count</div>
+                    <input asp-for="MaxPageCount"
+                           class="form-control"
+                           type="number"
+                           min="1"
+                           placeholder="e.g. 500" />
+                </div>
+
+                <!-- Published Year -->
+                <div class="col-md-4">
+                    <div class="filter-label">Published Year</div>
+                    <input asp-for="PublishedYear"
+                           class="form-control"
+                           type="number"
+                           min="1900"
+                           max="2100"
+                           placeholder="e.g. 2020" />
+                </div>
+
+            </div><!-- /row -->
+            <!-- Buttons -->
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-search-main">
+                    <i class="bi bi-search me-1"></i> Search
+                </button>
+                <a href="/Book/AdvancedSearch" class="btn btn-reset">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                </a>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SEARCH RESULTS
+    ══════════════════════════════════════════ -->
+    @if (Model.SearchPerformed)
+    {
+        @if (Model.Results.Any())
+        {
+            <div class="results-count">
+                <i class="bi bi-filter-circle me-1"></i>
+                Showing <strong>@Model.Results.Count</strong> result(s)
+            </div>
+            <div class="book-detail-card">
+                <div class="row g-0">
+                    <div class="col-md-6">
+
+                        @foreach (var book in Model.Results)
+                        {
+
+                            <div class="book-card me-2 mb-2">
+                                @if (!string.IsNullOrEmpty(book.ImageUrl))
+                                {
+                                    <img src="@Url.Content("~/images/" + book.ImageUrl)" alt="@book.Title" />
+
+                                }
+                                else
+                                {
+                                    <div class="no-img">
+                                        <i class="bi bi-book"></i>
+                                    </div>
+                                }
+                                <div class="book-info">
+                                    <div class="book-title">@book.Title</div>
+
+                                    @if (!string.IsNullOrEmpty(book.ShortDesc))
+                                    {
+                                        <div class="book-desc">@book.ShortDesc</div>
+                                    }
+
+                                    <div class="meta-row">
+                                        <strong>Author(s):</strong> @book.Authors
+                                    </div>
+                                    <div class="meta-row">
+                                        <strong>Genre:</strong> @(book.GenreName ?? "—")
+                                    </div>
+                                    <div class="meta-row">
+                                        <strong>Publication:</strong> @(book.Publication ?? "—")
+                                    </div>
+                                    <div class="meta-row">
+                                        <strong>Pages:</strong> @(book.Pages?.ToString() ?? "—")
+                                    </div>
+                                    <div class="meta-row">
+                                        <strong>Published:</strong> @(book.PublishedYear?.ToString() ?? "—")
+                                    </div>
+                                    <div class="meta-row">
+                                        <strong>ISBN:</strong> @(book.ISBN ?? "—")
+                                    </div>
+
+                                    <a href="/Book/Details/@book.BookId"
+                                       class="btn btn-details">
+                                        View Details
+                                    </a>
+                                </div>
+
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        }
+        else
+        {
+            <div class="no-results">
+                <i class="bi bi-journal-x"></i>
+                <h6>No books found matching your search criteria.</h6>
+                <p class="small">Try adjusting your filters and search again.</p>
+            </div>
+        }
+    }
+
+</div>

@@ -1,0 +1,518 @@
+﻿@model MrLMS.Models.ViewModels.VmBookDetails
+@{
+    ViewData["Title"] = Model.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var isLoggedIn = Context.Session.GetString("UserEmail") != null;
+
+    // ── Star helpers ──────────────────────────────────────────
+    string RenderStars(int rating)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (int i = 1; i <= 5; i++)
+        {
+            if (i <= rating)
+                sb.Append("<i class='bi bi-star-fill'></i>");
+            else
+                sb.Append("<i class='bi bi-star'></i>");
+        }
+        return sb.ToString();
+    }
+
+    string StarColor(int rating) => rating switch
+    {
+        5 => "#f59e0b",
+        4 => "#f59e0b",
+        3 => "#fb923c",
+        2 => "#ef4444",
+        1 => "#ef4444",
+        _ => "#ccc"
+    };
+
+    int RatingPercent(int starCount, int total)
+        => total == 0 ? 0 : (int)Math.Round((double)starCount / total * 100);
+}
+
+
+
+<div class="details-page container-fluid">
+
+    <!-- ── TempData Alerts ─────────────────────────────────── -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success border-0 rounded-3 mb-3">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+        </div>
+    }
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning border-0 rounded-3 mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Warning"]
+        </div>
+    }
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 1 — BOOK DETAILS
+    ══════════════════════════════════════════════════════ -->
+    <div class="book-detail-card">
+        <div class="row g-0">
+
+            <!-- Left: Image + availability -->
+            <div class="col-md-3 book-image-col">
+                @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                {
+                   
+                    <img src="@Url.Content("~/images/" + Model.ImageUrl)" alt="@Model.Title" />
+                }
+                else
+                {
+                    <div class="no-img"><i class="bi bi-book"></i></div>
+                }
+
+                @if (Model.AvailableCopies > 0)
+                {
+                    <span class="available-badge bg-success text-white">
+                        <i class="bi bi-check-circle me-1"></i>
+                        @Model.AvailableCopies Available
+                    </span>
+                }
+                else
+                {
+                    <span class="available-badge bg-danger text-white">
+                        <i class="bi bi-x-circle me-1"></i>Not Available
+                    </span>
+                }
+            </div>
+
+            <!-- Right: Book Info -->
+            <div class="col-md-9 book-info-col">
+
+                <div class="book-main-title">@Model.Title</div>
+
+                @if (!string.IsNullOrEmpty(Model.ShortDesc))
+                {
+                    <div class="book-short-desc">@Model.ShortDesc</div>
+                }
+
+                <!-- Info Grid -->
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Author(s)</span>
+                        @Model.Authors
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Genre</span>
+                        @(Model.GenreName ?? "—")
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Publication</span>
+                        @(Model.Publication ?? "—")
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Published Year</span>
+                        @(Model.PublishedYear?.ToString() ?? "—")
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Pages</span>
+                        @(Model.Pages?.ToString() ?? "—")
+                    </div>
+                    <div class="info-item">
+                        <span class="label">ISBN</span>
+                        @(Model.ISBN ?? "—")
+                    </div>
+                </div>
+
+                <!-- Live Stats Pills -->
+                <div class="stat-pills">
+                    <span class="stat-pill pill-rating">
+                        <i class="bi bi-star-fill"></i>
+                        @Model.AvgRating.ToString("0.0") Avg Rating
+                    </span>
+                    <span class="stat-pill pill-reserve">
+                        <i class="bi bi-bookmark-fill"></i>
+                        @Model.ReservationCount Reservations
+                    </span>
+                    <span class="stat-pill pill-recommend">
+                        <i class="bi bi-hand-thumbs-up-fill"></i>
+                        @Model.RecommendationCount Recommended
+                    </span>
+                </div>
+
+                <!-- Reserve Button -->
+                @if (Model.AvailableCopies > 0)
+                {
+                    @if (isLoggedIn)
+                    {
+                        <a href="/Book/Reserve/@Model.BookId"
+                           class="btn-reserve-main">
+                            <i class="bi bi-bookmark-plus-fill"></i>Reserve This Book
+                        </a>
+                    }
+                    else
+                    {
+                        <a href="/Account/Login?returnUrl=/Book/Reserve/@Model.BookId"
+                           class="btn-reserve-main">
+                            <i class="bi bi-bookmark-plus-fill"></i>Reserve This Book
+                        </a>
+                        <div class="login-hint">
+                            <i class="bi bi-info-circle me-1"></i>
+                            You need to
+                            <a href="/Account/Login?returnUrl=/Book/Reserve/@Model.BookId">login</a>
+                            to reserve this book.
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="btn-reserve-disabled">
+                        <i class="bi bi-x-circle"></i>Not Available for Reservation
+                    </div>
+                }
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 2 — RATINGS & REVIEWS
+    ══════════════════════════════════════════════════════ -->
+    <div class="section-block">
+        <div class="section-heading">
+            <div class="s-icon" style="background:#f59e0b">
+                <i class="bi bi-star-fill"></i>
+            </div>
+            <h5>Ratings &amp; Reviews</h5>
+            <span class="sub-count">
+                @Model.TotalReviewCount review@(Model.TotalReviewCount == 1 ? "" : "s")
+            </span>
+        </div>
+
+        @if (Model.TotalReviewCount > 0)
+        {
+            <!-- Summary + Breakdown -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="rating-summary-card">
+                        <div class="big-rating">
+                            @Model.OverallAvgRating.ToString("0.0")
+                        </div>
+                        <div class="big-stars">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                if (i <= Math.Floor(Model.OverallAvgRating))
+                                {
+                                    <i class="bi bi-star-fill"></i>
+                                }
+                                else if ((i - Model.OverallAvgRating) < 1
+                                && (i - Model.OverallAvgRating) > 0)
+                                {
+                                    <i class="bi bi-star-half"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-star"></i>
+                                }
+                            }
+                        </div>
+                        <div class="rating-total">
+                            Based on @Model.TotalReviewCount
+                            review@(Model.TotalReviewCount == 1 ? "" : "s")
+                        </div>
+                        @if (Model.TotalRecommendedCount > 0)
+                        {
+                            <div>
+                                <span class="recommend-pill">
+                                    <i class="bi bi-hand-thumbs-up-fill"></i>
+                                    @Model.TotalRecommendedCount Recommended
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-md-9">
+                    <div class="breakdown-card">
+                        <h6>
+                            <i class="bi bi-bar-chart-fill me-2 text-warning"></i>
+                            Rating Breakdown
+                        </h6>
+                        @foreach (var kv in Model.RatingBreakdown)
+                        {
+                            int pct = RatingPercent(kv.Value, Model.TotalReviewCount);
+                            string fc = kv.Key >= 4 ? "" : (kv.Key == 3 ? "mid" : "low");
+                            <div class="bar-row">
+                                <div class="bar-label">
+                                    @kv.Key <i class="bi bi-star-fill"></i>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill @fc" style="width:@pct%"></div>
+                                </div>
+                                <div class="bar-count">@kv.Value</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top 6 Review Cards -->
+            <div class="row g-3">
+                @foreach (var review in Model.TopReviews)
+                {
+                    <div class="col-md-4">
+                        <div class="review-card">
+                            @if (review.IsRecommended)
+                            {
+                                <span class="recommended-tag">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Recommended
+                                </span>
+                            }
+                            <div class="review-stars"
+                                 style="color:@StarColor(review.Rating)">
+                                @Html.Raw(RenderStars(review.Rating))
+                                <span style="color:#555; font-size:0.78rem;
+                                                     margin-left:6px; font-weight:600">
+                                    @review.Rating / 5
+                                </span>
+                            </div>
+                            <div class="review-comment">
+                                @if (!string.IsNullOrWhiteSpace(review.Comment))
+                                {
+                                    <span>"@review.Comment"</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic">
+                                        No comment provided.
+                                    </span>
+                                }
+                            </div>
+                            <div class="reviewer-row">
+                                <div class="d-flex align-items-center">
+                                    <div class="reviewer-avatar">
+                                        @review.MemberName.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <span class="reviewer-name">@review.MemberName</span>
+                                </div>
+                                <div class="review-date">
+                                    <i class="bi bi-calendar3 me-1"></i>
+                                    @review.ReviewedOn.ToString("dd MMM yyyy")
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-data-box">
+                <i class="bi bi-chat-left-text"></i>
+                <strong>No Reviews Yet</strong>
+                <p class="mb-0 mt-1">Be the first to review this book.</p>
+            </div>
+        }
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 3 — RELATED BOOKS
+    ══════════════════════════════════════════════════════ -->
+    <div class="section-block">
+        <div class="section-heading">
+            <div class="s-icon" style="background:#7c3aed">
+                <i class="bi bi-journals"></i>
+            </div>
+            <h5>Related Books</h5>
+        </div>
+
+        <!-- 3A: Same Genre -->
+        <div class="group-block">
+            <div class="related-section-title">
+                <div class="title-icon" style="background:#7c3aed">
+                    <i class="bi bi-bookmarks-fill"></i>
+                </div>
+                <h6>More in <em>@(Model.GenreName ?? "this Genre")</em></h6>
+                <span>Top 3 by Reservations</span>
+            </div>
+            @if (Model.SameGenreBooks.Any())
+            {
+                <div class="row g-3">
+                    @foreach (var b in Model.SameGenreBooks)
+                    {
+                        <div class="col-md-4">
+                            <div class="rel-book-card">
+                                @if (!string.IsNullOrEmpty(b.ImageUrl))
+                                {
+                                    <img src="@Url.Content("~/images/" + b.ImageUrl)" alt="@b.Title" />
+                                }
+                                else
+                                {
+                                    <div class="rel-no-img">
+                                        <i class="bi bi-book"></i>
+                                    </div>
+                                }
+                                <div class="rel-body">
+                                    <div>
+                                        <div class="rel-title">@b.Title</div>
+                                        <div class="rel-meta">
+                                            <strong>By:</strong> @b.Authors
+                                        </div>
+                                        <div class="rel-meta">
+                                            <strong>Genre:</strong> @(b.GenreName ?? "—")
+                                        </div>
+                                        <div class="rel-meta">
+                                            <strong>Pub:</strong> @(b.Publication ?? "—")
+                                        </div>
+                                        <div class="rel-reservation-badge">
+                                            <i class="bi bi-bookmark-fill"></i>
+                                            @b.ReservationCount Reserved
+                                        </div>
+                                    </div>
+                                    <a href="/Book/Details/@b.BookId"
+                                       class="btn-rel-details">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-data-box">
+                    <i class="bi bi-journal-x"></i>
+                    No other books found in this genre.
+                </div>
+            }
+        </div>
+
+        <!-- 3B: Same Author -->
+        <div class="group-block">
+            <div class="related-section-title">
+                <div class="title-icon" style="background:#0891b2">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <h6>
+                    More by
+                    <em>
+                        @(Model.Authors?.Split('|').FirstOrDefault()?.Trim()
+                                                ?? "this Author")
+                    </em>
+                </h6>
+                <span>Top 3 by Reservations</span>
+            </div>
+            @if (Model.SameAuthorBooks.Any())
+            {
+                <div class="row g-3">
+                    @foreach (var b in Model.SameAuthorBooks)
+                    {
+                        <div class="col-md-4">
+                            <div class="rel-book-card">
+                                @if (!string.IsNullOrEmpty(b.ImageUrl))
+                                {
+                                    <img src="@Url.Content("~/images/" + Model.ImageUrl)" alt="@Model.Title" />
+                                }
+                                else
+                                {
+                                    <div class="rel-no-img">
+                                        <i class="bi bi-book"></i>
+                                    </div>
+                                }
+                                <div class="rel-body">
+                                    <div>
+                                        <div class="rel-title">@b.Title</div>
+                                        <div class="rel-meta">
+                                            <strong>By:</strong> @b.Authors
+                                        </div>
+                                        <div class="rel-meta">
+                                            <strong>Genre:</strong> @(b.GenreName ?? "—")
+                                        </div>
+                                        <div class="rel-meta">
+                                            <strong>Pub:</strong> @(b.Publication ?? "—")
+                                        </div>
+                                        <div class="rel-reservation-badge">
+                                            <i class="bi bi-bookmark-fill"></i>
+                                            @b.ReservationCount Reserved
+                                        </div>
+                                    </div>
+                                    <a href="/Book/Details/@b.BookId"
+                                       class="btn-rel-details">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-data-box">
+                    <i class="bi bi-person-x"></i>
+                    No other books found by this author.
+                </div>
+            }
+        </div>
+
+        <!-- 3C: Same Publication -->
+        <div class="group-block">
+            <div class="related-section-title">
+                <div class="title-icon" style="background:#e8604c">
+                    <i class="bi bi-building"></i>
+                </div>
+                <h6>More from <em>@(Model.Publication ?? "this Publication")</em></h6>
+                <span>Top 3 by Reservations</span>
+            </div>
+            @if (Model.SamePublicationBooks.Any())
+            {
+                <div class="row g-3">
+                    @foreach (var b in Model.SamePublicationBooks)
+                    {
+                        <div class="col-md-4">
+                            <div class="rel-book-card">
+                                @if (!string.IsNullOrEmpty(b.ImageUrl))
+                                {
+                                    <img src="@Url.Content("~/images/" + Model.ImageUrl)" alt="@Model.Title" />
+                                    
+                                }
+                                else
+                                {
+                                    <div class="rel-no-img">
+                                        <i class="bi bi-book"></i>
+                                    </div>
+                                }
+                                <div class="rel-body">
+                                    <div>
+                                        <div class="rel-title">@b.Title</div>
+                                        <div class="rel-meta">
+                                            <strong>By:</strong> @b.Authors
+                                        </div>
+                                        <div class="rel-meta">
+                                            <strong>Genre:</strong> @(b.GenreName ?? "—")
+                                        </div>
+                                        <div class="rel-meta">
+                                            <strong>Pub:</strong> @(b.Publication ?? "—")
+                                        </div>
+                                        <div class="rel-reservation-badge">
+                                            <i class="bi bi-bookmark-fill"></i>
+                                            @b.ReservationCount Reserved
+                                        </div>
+                                    </div>
+                                    <a href="/Book/Details/@b.BookId"
+                                       class="btn-rel-details">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="no-data-box">
+                    <i class="bi bi-building"></i>
+                    No other books found from this publication.
+                </div>
+            }
+        </div>
+
+    </div>
+    <!-- /Section 3 -->
+
+</div>
+<!-- /details-page -->
